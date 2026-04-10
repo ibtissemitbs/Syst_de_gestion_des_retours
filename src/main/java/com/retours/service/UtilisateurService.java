@@ -1,6 +1,7 @@
 package com.retours.service;
 
 import com.retours.dto.request.CreateUtilisateurRequest;
+import com.retours.dto.request.UpdateUtilisateurRequest;
 import com.retours.entity.Utilisateur;
 import com.retours.exception.ConflictException;
 import com.retours.exception.ResourceNotFoundException;
@@ -42,6 +43,23 @@ public class UtilisateurService {
     public Utilisateur getById(Long id) {
         return utilisateurRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Utilisateur introuvable avec id=" + id));
+    }
+
+    @Transactional
+    public Utilisateur update(Long id, UpdateUtilisateurRequest request) {
+        Utilisateur utilisateur = getById(id);
+
+        utilisateurRepository.findByEmail(request.getEmail()).ifPresent(existing -> {
+            if (!existing.getId().equals(id)) {
+                throw new IllegalArgumentException("Email deja utilise");
+            }
+        });
+
+        utilisateur.setNom(request.getNom());
+        utilisateur.setEmail(request.getEmail());
+        utilisateur.setRole(request.getRole());
+
+        return utilisateurRepository.save(utilisateur);
     }
 
     @Transactional

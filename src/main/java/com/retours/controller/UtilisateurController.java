@@ -1,6 +1,7 @@
 package com.retours.controller;
 
 import com.retours.dto.request.CreateUtilisateurRequest;
+import com.retours.dto.request.UpdateUtilisateurRequest;
 import com.retours.entity.Utilisateur;
 import com.retours.service.UtilisateurService;
 import jakarta.validation.Valid;
@@ -12,6 +13,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -36,6 +38,12 @@ public class UtilisateurController {
     @GetMapping("/{id}")
     public ResponseEntity<Utilisateur> getById(@PathVariable Long id) {
         return ResponseEntity.ok(utilisateurService.getById(id));
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<Utilisateur> update(@PathVariable Long id,
+                                              @Valid @RequestBody UpdateUtilisateurRequest request) {
+        return ResponseEntity.ok(utilisateurService.update(id, request));
     }
 
     @DeleteMapping("/{id}")

@@ -1,6 +1,7 @@
 package com.retours.controller;
 
 import com.retours.dto.request.CreateNonConformiteRequest;
+import com.retours.dto.request.UpdateNonConformiteRequest;
 import com.retours.dto.response.NonConformiteDTO;
 import com.retours.entity.NonConformite;
 import com.retours.service.NonConformiteService;
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -42,6 +44,12 @@ public class NonConformiteController {
     @GetMapping("/{id}")
     public ResponseEntity<NonConformiteDTO> getById(@PathVariable Long id) {
         return ResponseEntity.ok(NonConformiteDTO.fromEntity(nonConformiteService.getById(id)));
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<NonConformiteDTO> update(@PathVariable Long id,
+                                                    @Valid @RequestBody UpdateNonConformiteRequest request) {
+        return ResponseEntity.ok(NonConformiteDTO.fromEntity(nonConformiteService.update(id, request)));
     }
 
     @DeleteMapping("/{id}")
