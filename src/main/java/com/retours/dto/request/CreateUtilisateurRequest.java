@@ -18,6 +18,9 @@ public class CreateUtilisateurRequest {
     @NotBlank(message = "L'email est obligatoire")
     private String email;
 
+    @NotBlank(message = "Le mot de passe est obligatoire")
+    private String password;
+
     @NotNull(message = "Le role est obligatoire")
     private Role role;
 }

@@ -58,28 +58,28 @@ public class RetourProduitService {
     }
 
     @Transactional
-    public RetourProduit updateEtat(Long id, EtatTraitement etatTraitement, Long employeId) {
+    public RetourProduit updateEtat(Long id, EtatTraitement etatTraitement, String employeEmail) {
         RetourProduit retour = getById(id);
 
-        if (employeId == null) {
-            throw new IllegalArgumentException("L'identifiant de l'employe qualite est obligatoire pour traiter le retour");
+        if (employeEmail == null || employeEmail.isBlank()) {
+            throw new IllegalArgumentException("Utilisateur authentifie introuvable");
         }
 
-        Utilisateur employe = utilisateurRepository.findById(employeId)
-                .orElseThrow(() -> new ResourceNotFoundException("Utilisateur introuvable avec id=" + employeId));
+        Utilisateur employe = utilisateurRepository.findByEmail(employeEmail)
+                .orElseThrow(() -> new ResourceNotFoundException("Utilisateur introuvable avec email=" + employeEmail));
 
-        if (employe.getRole() != Role.QUALITE) {
-            throw new IllegalArgumentException("Seul le service qualite peut valider ou traiter les retours");
+        if (employe.getRole() != Role.QUALITE && employe.getRole() != Role.ADMIN) {
+            throw new IllegalArgumentException("Seuls les profils qualite ou admin peuvent traiter les retours");
         }
 
         retour.setEtatTraitement(etatTraitement);
 
-        if (etatTraitement == EtatTraitement.VALIDE) {
-            retour.setStockMisAJour(true);
+        if (etatTraitement == EtatTraitement.VALIDE || etatTraitement == EtatTraitement.REJETE) {
+            retour.setStockMisAJour(etatTraitement == EtatTraitement.VALIDE);
         }
 
         RetourProduit saved = retourProduitRepository.save(retour);
-        historiqueRetourService.logAction(saved.getId(), "Etat passe a " + etatTraitement, employeId);
+        historiqueRetourService.logAction(saved.getId(), "Etat passe a " + etatTraitement, employe.getId());
         return saved;
     }
 

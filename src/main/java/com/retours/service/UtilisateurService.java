@@ -9,6 +9,7 @@ import com.retours.repository.HistoriqueRetourRepository;
 import com.retours.repository.UtilisateurRepository;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,6 +19,7 @@ public class UtilisateurService {
 
     private final UtilisateurRepository utilisateurRepository;
     private final HistoriqueRetourRepository historiqueRetourRepository;
+    private final PasswordEncoder passwordEncoder;
 
     @Transactional
     public Utilisateur create(CreateUtilisateurRequest request) {
@@ -28,6 +30,8 @@ public class UtilisateurService {
         Utilisateur utilisateur = Utilisateur.builder()
                 .nom(request.getNom())
                 .email(request.getEmail())
+                .passwordHash(passwordEncoder.encode(request.getPassword()))
+                .enabled(true)
                 .role(request.getRole())
                 .build();
 
@@ -58,6 +62,9 @@ public class UtilisateurService {
         utilisateur.setNom(request.getNom());
         utilisateur.setEmail(request.getEmail());
         utilisateur.setRole(request.getRole());
+        if (request.getPassword() != null && !request.getPassword().isBlank()) {
+            utilisateur.setPasswordHash(passwordEncoder.encode(request.getPassword()));
+        }
 
         return utilisateurRepository.save(utilisateur);
     }

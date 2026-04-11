@@ -11,6 +11,4 @@ public class UpdateEtatRetourRequest {
 
     @NotNull(message = "L'etat est obligatoire")
     private EtatTraitement etatTraitement;
-
-    private Long employeId;
 }

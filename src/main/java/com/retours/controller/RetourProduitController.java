@@ -11,6 +11,8 @@ import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -29,12 +31,14 @@ public class RetourProduitController {
     private final RetourProduitService retourProduitService;
 
     @PostMapping
+    @PreAuthorize("hasAnyRole('AGENT','QUALITE','ADMIN')")
     public ResponseEntity<RetourDTO> create(@Valid @RequestBody CreateRetourRequest request) {
         RetourProduit saved = retourProduitService.create(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(RetourDTO.fromEntity(saved));
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('AGENT','QUALITE','ADMIN')")
     public ResponseEntity<List<RetourDTO>> list(@RequestParam(required = false) EtatTraitement etat) {
         List<RetourProduit> retours = etat == null
                 ? retourProduitService.listAll()
@@ -43,18 +47,22 @@ public class RetourProduitController {
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('AGENT','QUALITE','ADMIN')")
     public ResponseEntity<RetourDTO> getById(@PathVariable Long id) {
         return ResponseEntity.ok(RetourDTO.fromEntity(retourProduitService.getById(id)));
     }
 
     @PutMapping("/{id}/etat")
+    @PreAuthorize("hasAnyRole('QUALITE','ADMIN')")
     public ResponseEntity<RetourDTO> updateEtat(@PathVariable Long id,
-                                                @Valid @RequestBody UpdateEtatRetourRequest request) {
-        RetourProduit updated = retourProduitService.updateEtat(id, request.getEtatTraitement(), request.getEmployeId());
+                                                @Valid @RequestBody UpdateEtatRetourRequest request,
+                                                Authentication authentication) {
+        RetourProduit updated = retourProduitService.updateEtat(id, request.getEtatTraitement(), authentication.getName());
         return ResponseEntity.ok(RetourDTO.fromEntity(updated));
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyRole('QUALITE','ADMIN')")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         retourProduitService.delete(id);
         return ResponseEntity.noContent().build();

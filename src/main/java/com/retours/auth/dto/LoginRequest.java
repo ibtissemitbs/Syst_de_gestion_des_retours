@@ -1,25 +1,18 @@
-package com.retours.dto.request;
+package com.retours.auth.dto;
 
-import com.retours.enums.Role;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.Setter;
 
 @Getter
 @Setter
-public class UpdateUtilisateurRequest {
-
-    @NotBlank(message = "Le nom est obligatoire")
-    private String nom;
+public class LoginRequest {
 
     @Email(message = "Email invalide")
     @NotBlank(message = "L'email est obligatoire")
     private String email;
 
+    @NotBlank(message = "Le mot de passe est obligatoire")
     private String password;
-
-    @NotNull(message = "Le role est obligatoire")
-    private Role role;
 }
