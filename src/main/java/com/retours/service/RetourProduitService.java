@@ -1,20 +1,20 @@
 package com.retours.service;
 
-import com.retours.dto.request.CreateRetourRequest;
 import com.retours.entity.RetourProduit;
 import com.retours.entity.Utilisateur;
 import com.retours.enums.EtatTraitement;
 import com.retours.enums.Role;
-import com.retours.exception.ConflictException;
-import com.retours.exception.ResourceNotFoundException;
 import com.retours.repository.HistoriqueRetourRepository;
 import com.retours.repository.RetourProduitRepository;
 import com.retours.repository.UtilisateurRepository;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 @Service
 @RequiredArgsConstructor
@@ -26,11 +26,25 @@ public class RetourProduitService {
     private final HistoriqueRetourService historiqueRetourService;
 
     @Transactional
-    public RetourProduit create(CreateRetourRequest request) {
+    public RetourProduit create(Map<String, Object> request) {
+        String produit = (String) request.get("produit");
+        String client = (String) request.get("client");
+        String raison = (String) request.get("raison");
+
+        if (produit == null || produit.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Le produit est obligatoire");
+        }
+        if (client == null || client.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Le client est obligatoire");
+        }
+        if (raison == null || raison.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "La raison est obligatoire");
+        }
+
         RetourProduit retour = RetourProduit.builder()
-                .produit(request.getProduit())
-                .client(request.getClient())
-                .raison(request.getRaison())
+                .produit(produit)
+                .client(client)
+                .raison(raison)
                 .etatTraitement(EtatTraitement.ENREGISTRE)
                 .date(LocalDateTime.now())
                 .stockMisAJour(false)
@@ -54,7 +68,7 @@ public class RetourProduitService {
     @Transactional(readOnly = true)
     public RetourProduit getById(Long id) {
         return retourProduitRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Retour introuvable avec id=" + id));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Retour introuvable"));
     }
 
     @Transactional
@@ -62,14 +76,14 @@ public class RetourProduitService {
         RetourProduit retour = getById(id);
 
         if (employeEmail == null || employeEmail.isBlank()) {
-            throw new IllegalArgumentException("Utilisateur authentifie introuvable");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Utilisateur authentifie introuvable");
         }
 
         Utilisateur employe = utilisateurRepository.findByEmail(employeEmail)
-                .orElseThrow(() -> new ResourceNotFoundException("Utilisateur introuvable avec email=" + employeEmail));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Utilisateur introuvable"));
 
         if (employe.getRole() != Role.QUALITE && employe.getRole() != Role.ADMIN) {
-            throw new IllegalArgumentException("Seuls les profils qualite ou admin peuvent traiter les retours");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Seuls les profils qualite ou admin peuvent traiter les retours");
         }
 
         retour.setEtatTraitement(etatTraitement);
@@ -86,8 +100,8 @@ public class RetourProduitService {
     @Transactional
     public void delete(Long id) {
         RetourProduit retour = getById(id);
-        if (historiqueRetourRepository.existsByRetourId(id)) {
-            throw new ConflictException("Suppression impossible: un historique existe pour ce retour (id=" + id + ")");
+        if (historiqueRetourRepository.existsByRetourProduitId(id)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Suppression impossible: un historique existe pour ce retour");
         }
         retourProduitRepository.delete(retour);
     }

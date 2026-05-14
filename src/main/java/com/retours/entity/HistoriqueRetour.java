@@ -11,14 +11,15 @@ import jakarta.persistence.Table;
 import java.time.LocalDateTime;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Getter;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.ToString;
+
 
 @Entity
 @Table(name = "historique_retours")
-@Getter
-@Setter
+@Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -30,13 +31,17 @@ public class HistoriqueRetour {
 
     @ManyToOne(optional = false)
     @JoinColumn(name = "retour_id", nullable = false)
-    private RetourProduit retour;
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    private RetourProduit retourProduit;
 
     @Column(nullable = false)
     private String action;
 
     @ManyToOne
     @JoinColumn(name = "employe_id")
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     private Utilisateur employe;
 
     @Column(nullable = false)

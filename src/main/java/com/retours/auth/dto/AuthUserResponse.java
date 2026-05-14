@@ -3,9 +3,10 @@ package com.retours.auth.dto;
 import com.retours.entity.Utilisateur;
 import com.retours.enums.Role;
 import lombok.Builder;
-import lombok.Getter;
+import lombok.Data;
 
-@Getter
+
+@Data
 @Builder
 public class AuthUserResponse {
 

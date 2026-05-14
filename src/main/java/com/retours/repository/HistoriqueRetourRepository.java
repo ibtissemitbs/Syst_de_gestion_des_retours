@@ -5,7 +5,7 @@ import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface HistoriqueRetourRepository extends JpaRepository<HistoriqueRetour, Long> {
-    List<HistoriqueRetour> findByRetourIdOrderByDateDesc(Long retourId);
-    boolean existsByRetourId(Long retourId);
+    List<HistoriqueRetour> findByRetourProduitIdOrderByDateDesc(Long retourId);
+    boolean existsByRetourProduitId(Long retourId);
     boolean existsByEmployeId(Long employeId);
 }

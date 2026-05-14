@@ -1,12 +1,12 @@
 package com.retours.controller;
 
-import com.retours.dto.request.CreateNonConformiteRequest;
-import com.retours.dto.request.UpdateNonConformiteRequest;
-import com.retours.dto.response.NonConformiteDTO;
+import com.retours.converter.NonConformiteConverter;
+import com.retours.dto.NonConformiteDTO;
+//import com.retours.dto.NonConformiteDTO;
 import com.retours.entity.NonConformite;
 import com.retours.service.NonConformiteService;
-import jakarta.validation.Valid;
 import java.util.List;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -27,12 +27,13 @@ import org.springframework.web.bind.annotation.RestController;
 public class NonConformiteController {
 
     private final NonConformiteService nonConformiteService;
+    private final NonConformiteConverter nonConformiteConverter;
 
     @PostMapping
     @PreAuthorize("hasAnyRole('AGENT','QUALITE','ADMIN')")
-    public ResponseEntity<NonConformiteDTO> create(@Valid @RequestBody CreateNonConformiteRequest request) {
+    public ResponseEntity<NonConformiteDTO> create(@RequestBody Map<String, Object> request) {
         NonConformite saved = nonConformiteService.create(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(NonConformiteDTO.fromEntity(saved));
+        return ResponseEntity.status(HttpStatus.CREATED).body(nonConformiteConverter.toDto(saved));
     }
 
     @GetMapping
@@ -41,26 +42,27 @@ public class NonConformiteController {
         List<NonConformite> list = produit == null
                 ? nonConformiteService.listAll()
                 : nonConformiteService.listByProduit(produit);
-        return ResponseEntity.ok(list.stream().map(NonConformiteDTO::fromEntity).toList());
+        return ResponseEntity.ok(list.stream().map(nonConformiteConverter::toDto).toList());
     }
 
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('AGENT','QUALITE','ADMIN')")
     public ResponseEntity<NonConformiteDTO> getById(@PathVariable Long id) {
-        return ResponseEntity.ok(NonConformiteDTO.fromEntity(nonConformiteService.getById(id)));
+        return ResponseEntity.ok(nonConformiteConverter.toDto(nonConformiteService.getById(id)));
     }
 
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyRole('QUALITE','ADMIN')")
-    public ResponseEntity<NonConformiteDTO> update(@PathVariable Long id,
-                                                    @Valid @RequestBody UpdateNonConformiteRequest request) {
-        return ResponseEntity.ok(NonConformiteDTO.fromEntity(nonConformiteService.update(id, request)));
+    public ResponseEntity<NonConformiteDTO> update(@PathVariable Long id, @RequestBody Map<String, Object> request) {
+        NonConformite updated = nonConformiteService.update(id, request);
+        return ResponseEntity.ok(nonConformiteConverter.toDto(updated));
     }
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAnyRole('QUALITE','ADMIN')")
-    public ResponseEntity<Void> delete(@PathVariable Long id) {
+    public ResponseEntity<NonConformiteDTO> delete(@PathVariable Long id) {
         nonConformiteService.delete(id);
         return ResponseEntity.noContent().build();
     }
+
 }

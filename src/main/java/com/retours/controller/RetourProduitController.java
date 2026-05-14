@@ -1,13 +1,13 @@
 package com.retours.controller;
 
-import com.retours.dto.request.CreateRetourRequest;
-import com.retours.dto.request.UpdateEtatRetourRequest;
-import com.retours.dto.response.RetourDTO;
+import com.retours.converter.RetourProduitConverter;
+import com.retours.dto.RetourProduitDTO;
+//import com.retours.dto.RetourProduitDTO;
 import com.retours.entity.RetourProduit;
 import com.retours.enums.EtatTraitement;
 import com.retours.service.RetourProduitService;
-import jakarta.validation.Valid;
 import java.util.List;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -29,42 +29,49 @@ import org.springframework.web.bind.annotation.RestController;
 public class RetourProduitController {
 
     private final RetourProduitService retourProduitService;
+    private final RetourProduitConverter retourProduitConverter;
 
     @PostMapping
     @PreAuthorize("hasAnyRole('AGENT','QUALITE','ADMIN')")
-    public ResponseEntity<RetourDTO> create(@Valid @RequestBody CreateRetourRequest request) {
+    public ResponseEntity<RetourProduitDTO> create(@RequestBody Map<String, Object> request) {
         RetourProduit saved = retourProduitService.create(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(RetourDTO.fromEntity(saved));
+        return ResponseEntity.status(HttpStatus.CREATED).body(retourProduitConverter.toDto(saved));
     }
 
     @GetMapping
     @PreAuthorize("hasAnyRole('AGENT','QUALITE','ADMIN')")
-    public ResponseEntity<List<RetourDTO>> list(@RequestParam(required = false) EtatTraitement etat) {
-        List<RetourProduit> retours = etat == null
-                ? retourProduitService.listAll()
-                : retourProduitService.listByEtat(etat);
-        return ResponseEntity.ok(retours.stream().map(RetourDTO::fromEntity).toList());
+    public ResponseEntity<List<RetourProduitDTO>> list(@RequestParam(required = false) String etat) {
+        List<RetourProduit> retours;
+        if (etat == null) {
+            retours = retourProduitService.listAll();
+        } else {
+            retours = retourProduitService.listByEtat(EtatTraitement.valueOf(etat.toUpperCase()));
+        }
+        return ResponseEntity.ok(retours.stream().map(retourProduitConverter::toDto).toList());
     }
 
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('AGENT','QUALITE','ADMIN')")
-    public ResponseEntity<RetourDTO> getById(@PathVariable Long id) {
-        return ResponseEntity.ok(RetourDTO.fromEntity(retourProduitService.getById(id)));
+    public ResponseEntity<RetourProduitDTO> getById(@PathVariable Long id) {
+        return ResponseEntity.ok(retourProduitConverter.toDto(retourProduitService.getById(id)));
     }
 
     @PutMapping("/{id}/etat")
     @PreAuthorize("hasAnyRole('QUALITE','ADMIN')")
-    public ResponseEntity<RetourDTO> updateEtat(@PathVariable Long id,
-                                                @Valid @RequestBody UpdateEtatRetourRequest request,
-                                                Authentication authentication) {
-        RetourProduit updated = retourProduitService.updateEtat(id, request.getEtatTraitement(), authentication.getName());
-        return ResponseEntity.ok(RetourDTO.fromEntity(updated));
+    public ResponseEntity<RetourProduitDTO> updateEtat(@PathVariable Long id,
+                                        @RequestBody Map<String, Object> request,
+                                        Authentication authentication) {
+        String etatStr = (String) request.get("etatTraitement");
+        EtatTraitement etat = EtatTraitement.valueOf(etatStr.toUpperCase());
+        RetourProduit updated = retourProduitService.updateEtat(id, etat, authentication.getName());
+        return ResponseEntity.ok(retourProduitConverter.toDto(updated));
     }
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAnyRole('QUALITE','ADMIN')")
-    public ResponseEntity<Void> delete(@PathVariable Long id) {
+    public ResponseEntity<RetourProduitDTO> delete(@PathVariable Long id) {
         retourProduitService.delete(id);
         return ResponseEntity.noContent().build();
     }
+
 }

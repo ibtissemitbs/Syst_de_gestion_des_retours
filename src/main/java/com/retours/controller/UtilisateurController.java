@@ -1,11 +1,13 @@
 package com.retours.controller;
 
-import com.retours.dto.request.CreateUtilisateurRequest;
-import com.retours.dto.request.UpdateUtilisateurRequest;
+import com.retours.converter.UtilisateurConverter;
+import com.retours.dto.UtilisateurDTO;
 import com.retours.entity.Utilisateur;
 import com.retours.service.UtilisateurService;
-import jakarta.validation.Valid;
+
 import java.util.List;
+//import java.util.List;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -26,30 +28,34 @@ import org.springframework.web.bind.annotation.RestController;
 public class UtilisateurController {
 
     private final UtilisateurService utilisateurService;
+    private final UtilisateurConverter utilisateurConverter;
 
     @PostMapping
-    public ResponseEntity<Utilisateur> create(@Valid @RequestBody CreateUtilisateurRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(utilisateurService.create(request));
+    public ResponseEntity<UtilisateurDTO> create(@RequestBody Map<String, Object> request) {
+        Utilisateur saved = utilisateurService.create(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(utilisateurConverter.toDto(saved));
     }
 
     @GetMapping
-    public ResponseEntity<List<Utilisateur>> listAll() {
-        return ResponseEntity.ok(utilisateurService.listAll());
+    public ResponseEntity<List<UtilisateurDTO>> listAll() {
+        return ResponseEntity.ok(
+            utilisateurService.listAll().stream().map(utilisateurConverter::toDto).toList()
+        );
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Utilisateur> getById(@PathVariable Long id) {
-        return ResponseEntity.ok(utilisateurService.getById(id));
+    public ResponseEntity<UtilisateurDTO> getById(@PathVariable Long id) {
+        return ResponseEntity.ok(utilisateurConverter.toDto(utilisateurService.getById(id)));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Utilisateur> update(@PathVariable Long id,
-                                              @Valid @RequestBody UpdateUtilisateurRequest request) {
-        return ResponseEntity.ok(utilisateurService.update(id, request));
+    public ResponseEntity<UtilisateurDTO> update(@PathVariable Long id, @RequestBody Map<String, Object> request) {
+        Utilisateur updated = utilisateurService.update(id, request);
+        return ResponseEntity.ok(utilisateurConverter.toDto(updated));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable Long id) {
+    public ResponseEntity<UtilisateurDTO> delete(@PathVariable Long id) {
         utilisateurService.delete(id);
         return ResponseEntity.noContent().build();
     }

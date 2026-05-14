@@ -1,9 +1,10 @@
 package com.retours.auth.dto;
 
 import lombok.Builder;
-import lombok.Getter;
+import lombok.Data;
 
-@Getter
+
+@Data
 @Builder
 public class LoginResponse {
 

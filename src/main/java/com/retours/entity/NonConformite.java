@@ -14,14 +14,15 @@ import jakarta.persistence.Table;
 import java.time.LocalDateTime;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Getter;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.ToString;
+
 
 @Entity
 @Table(name = "non_conformites")
-@Getter
-@Setter
+@Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -43,7 +44,9 @@ public class NonConformite {
 
     @ManyToOne
     @JoinColumn(name = "retour_id")
-    private RetourProduit retour;
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    private RetourProduit retourProduit;
 
     @Column(nullable = false)
     private LocalDateTime date;

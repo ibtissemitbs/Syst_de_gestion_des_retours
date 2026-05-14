@@ -27,7 +27,7 @@ public class HistoriqueRetourService {
 
     @Transactional(readOnly = true)
     public List<HistoriqueRetour> listByRetour(Long retourId) {
-        return historiqueRetourRepository.findByRetourIdOrderByDateDesc(retourId);
+        return historiqueRetourRepository.findByRetourProduitIdOrderByDateDesc(retourId);
     }
 
     @Transactional
@@ -40,7 +40,7 @@ public class HistoriqueRetourService {
         Utilisateur employe = employeId == null ? null : utilisateurRepository.findById(employeId).orElse(null);
 
         HistoriqueRetour historique = HistoriqueRetour.builder()
-                .retour(retour)
+                .retourProduit(retour)
                 .action(action)
                 .employe(employe)
                 .date(LocalDateTime.now())
