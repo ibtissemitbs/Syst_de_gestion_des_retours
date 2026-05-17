@@ -30,8 +30,16 @@ gcloud.cmd auth list
 Depuis la racine du repo :
 
 ```powershell
-.\gcp\deploy-gcp.ps1
+.\gcp\deploy-gcp.ps1 -CreateBillableResources
 ```
+
+Le switch `-CreateBillableResources` est obligatoire car Cloud SQL est payant.
+
+Si les mots de passe ne sont pas fournis, le script genere automatiquement :
+
+- le mot de passe root Cloud SQL
+- le mot de passe de l'utilisateur MySQL applicatif
+- le secret JWT
 
 Le script :
 

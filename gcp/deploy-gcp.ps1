@@ -4,10 +4,30 @@ param(
   [string]$ArtifactRepo = "retours",
   [string]$CloudSqlInstance = "retours-mysql",
   [string]$DatabaseName = "retoursdb",
-  [string]$DatabaseUser = "retours_user"
+  [string]$DatabaseUser = "retours_user",
+  [string]$RootPassword = "",
+  [string]$DbPassword = "",
+  [string]$JwtSecret = "",
+  [switch]$CreateBillableResources
 )
 
 $ErrorActionPreference = "Stop"
+
+if (-not $CreateBillableResources) {
+  throw "Cloud SQL est une ressource payante. Relancez avec -CreateBillableResources pour confirmer."
+}
+
+function New-RandomPassword {
+  $chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#%*-_"
+  -join (1..40 | ForEach-Object { $chars[(Get-Random -Minimum 0 -Maximum $chars.Length)] })
+}
+
+function New-Base64Secret {
+  $bytes = New-Object byte[] 64
+  $rng = [System.Security.Cryptography.RandomNumberGenerator]::Create()
+  $rng.GetBytes($bytes)
+  [Convert]::ToBase64String($bytes)
+}
 
 $BackendService = "retours-backend"
 $FrontendService = "retours-frontend"
@@ -37,15 +57,16 @@ if (-not $repoExists) {
 
 $sqlExists = gcloud.cmd sql instances describe $CloudSqlInstance --format "value(name)" 2>$null
 if (-not $sqlExists) {
-  $RootPassword = Read-Host "Mot de passe root Cloud SQL" -AsSecureString
-  $RootPasswordPlain = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($RootPassword))
+  if (-not $RootPassword) {
+    $RootPassword = New-RandomPassword
+  }
 
   gcloud.cmd sql instances create $CloudSqlInstance `
     --database-version MYSQL_8_0 `
     --tier db-f1-micro `
     --region $Region `
     --storage-size 10 `
-    --root-password $RootPasswordPlain
+    --root-password $RootPassword
 }
 
 $dbExists = gcloud.cmd sql databases describe $DatabaseName --instance $CloudSqlInstance --format "value(name)" 2>$null
@@ -53,27 +74,30 @@ if (-not $dbExists) {
   gcloud.cmd sql databases create $DatabaseName --instance $CloudSqlInstance
 }
 
-$DbPassword = Read-Host "Mot de passe utilisateur MySQL '$DatabaseUser'" -AsSecureString
-$DbPasswordPlain = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($DbPassword))
+if (-not $DbPassword) {
+  $DbPassword = New-RandomPassword
+}
 
 $dbUserExists = gcloud.cmd sql users list --instance $CloudSqlInstance --format "value(name)" | Select-String -SimpleMatch $DatabaseUser
 if (-not $dbUserExists) {
-  gcloud.cmd sql users create $DatabaseUser --instance $CloudSqlInstance --password $DbPasswordPlain
+  gcloud.cmd sql users create $DatabaseUser --instance $CloudSqlInstance --password $DbPassword
 }
 else {
-  gcloud.cmd sql users set-password $DatabaseUser --instance $CloudSqlInstance --password $DbPasswordPlain
+  gcloud.cmd sql users set-password $DatabaseUser --instance $CloudSqlInstance --password $DbPassword
 }
 
-$DbPasswordPlain | gcloud.cmd secrets create retours-db-password --data-file=- 2>$null
+$DbPassword | gcloud.cmd secrets create retours-db-password --data-file=- 2>$null
 if ($LASTEXITCODE -ne 0) {
-  $DbPasswordPlain | gcloud.cmd secrets versions add retours-db-password --data-file=-
+  $DbPassword | gcloud.cmd secrets versions add retours-db-password --data-file=-
 }
 
-$JwtSecret = Read-Host "Secret JWT base64" -AsSecureString
-$JwtSecretPlain = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($JwtSecret))
-$JwtSecretPlain | gcloud.cmd secrets create retours-jwt-secret --data-file=- 2>$null
+if (-not $JwtSecret) {
+  $JwtSecret = New-Base64Secret
+}
+
+$JwtSecret | gcloud.cmd secrets create retours-jwt-secret --data-file=- 2>$null
 if ($LASTEXITCODE -ne 0) {
-  $JwtSecretPlain | gcloud.cmd secrets versions add retours-jwt-secret --data-file=-
+  $JwtSecret | gcloud.cmd secrets versions add retours-jwt-secret --data-file=-
 }
 
 $ProjectNumber = gcloud.cmd projects describe $ProjectId --format "value(projectNumber)"
