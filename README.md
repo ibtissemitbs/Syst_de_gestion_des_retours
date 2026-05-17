@@ -1,59 +1,112 @@
-# retours-backend
+# Système de Gestion des Retours
 
-Backend Spring Boot pour le **systeme de gestion des retours**.
+Application full-stack de gestion des retours produits et des non-conformités.
 
-## Architecture
+Ce projet est composé d'un backend robuste sous Spring Boot et d'une interface utilisateur (Frontend).
 
-Le code suit l'arborescence suivante sous `src/main/java/com/retours`:
+## 🛠 Technologies
 
-- `config`: `SecurityConfig`, `SwaggerConfig`, `CorsConfig`
-- `controller`: `RetourProduitController`, `NonConformiteController`, `UtilisateurController`, `HistoriqueRetourController`
-- `service`: `RetourProduitService`, `NonConformiteService`, `UtilisateurService`, `HistoriqueRetourService`
-- `repository`: `RetourProduitRepository`, `NonConformiteRepository`, `UtilisateurRepository`, `HistoriqueRetourRepository`
-- `entity`: `RetourProduit`, `NonConformite`, `Utilisateur`, `HistoriqueRetour`
-- `dto/request`: `CreateRetourRequest`, `CreateNonConformiteRequest`, `CreateUtilisateurRequest`, `UpdateEtatRetourRequest`
-- `dto/response`: `RetourDTO`, `NonConformiteDTO`
-- `enums`: `EtatTraitement`, `Gravite`, `Role`
-- `exception`: `ResourceNotFoundException`, `GlobalExceptionHandler`
-
-## Technologies
+### Backend :
 
 - Java 17+
-- Spring Boot 4
-- Spring Web / Spring Data JPA / Validation
-- Spring Security (configuration permissive pour dev)
-- Swagger OpenAPI (`springdoc`)
-- H2 (par defaut) ou MySQL via variables d'environnement
+- Spring Boot 3.x (Web, Data JPA, Validation)
+- Spring Security (configuration permissive pour le développement)
+- Swagger OpenAPI (`springdoc`) pour la documentation de l'API
+- Base de données : H2 (en mémoire par défaut) ou MySQL
 
-## Lancer le projet
+### Frontend :
 
-1. Build + tests:
+- TypeScript / HTML / SCSS
 
-```cmd
-cd /d c:\Users\LENOVO\eclipse-workspace\Syst_de_gestion_des_retours
+### DevOps :
+
+- Docker (Dockerfile inclus)
+
+## 📁 Architecture du Backend
+
+Le code source backend suit l'arborescence suivante sous `src/main/java/com/retours` :
+
+- `config/` : Configuration globale (`SecurityConfig`, `SwaggerConfig`, `CorsConfig`)
+- `controller/` : Points d'entrée de l'API REST (`RetourProduitController`, `NonConformiteController`, etc.)
+- `service/` : Logique métier de l'application
+- `repository/` : Interfaces Spring Data JPA pour l'accès aux données
+- `entity/` : Modèles de données (Entités JPA)
+- `dto/` : Objets de transfert de données (`request/` et `response/`)
+- `enums/` : Énumérations (`EtatTraitement`, `Gravite`, `Role`)
+- `exception/` : Gestion centralisée des erreurs (`GlobalExceptionHandler`)
+
+## 🚀 Lancer le projet localement
+
+### Prérequis
+
+- Java 17+
+- Node.js (pour la partie Frontend)
+- Maven (inclus via le wrapper `mvnw`)
+
+### 1. Lancer le Backend
+
+Ouvrez un terminal à la racine du projet backend et exécutez les commandes suivantes :
+
+Pour lancer les tests :
+
+```bash
+# Sur Windows
 mvnw.cmd test
+
+# Sur Linux/macOS
+./mvnw test
 ```
 
-2. Lancer l'application:
+Pour démarrer l'application :
 
-```cmd
-cd /d c:\Users\LENOVO\eclipse-workspace\Syst_de_gestion_des_retours
+```bash
+# Sur Windows
 mvnw.cmd spring-boot:run
+
+# Sur Linux/macOS
+./mvnw spring-boot:run
 ```
 
-## URLs utiles
+L'API sera accessible sur : `http://localhost:8080`
 
-- Swagger UI: `http://localhost:8080/swagger-ui.html`
-- OpenAPI JSON: `http://localhost:8080/v3/api-docs`
-- H2 Console: `http://localhost:8080/h2-console`
+### 2. Lancer le Frontend
 
-## Configuration base de donnees
+(Assurez-vous de vous placer dans le dossier contenant le code frontend s'il est séparé, par exemple `cd frontend`)
 
-Par defaut, `application.properties` utilise H2 en memoire.
+```bash
+npm install
+npm start
+```
 
-Pour utiliser MySQL, definir par exemple:
+## 🐳 Déploiement avec Docker
 
-- `SPRING_DATASOURCE_URL=jdbc:mysql://localhost:3306/gestion_retours`
-- `SPRING_DATASOURCE_USERNAME=root`
-- `SPRING_DATASOURCE_PASSWORD=...`
-- `SPRING_DATASOURCE_DRIVER_CLASS_NAME=com.mysql.cj.jdbc.Driver`
+Le projet inclut un `Dockerfile` pour conteneuriser l'application.
+
+```bash
+# Construire l'image
+docker build -t gestion-retours-app .
+
+# Lancer le conteneur
+docker run -p 8080:8080 gestion-retours-app
+```
+
+## 🔗 URLs utiles (Backend local)
+
+- Swagger UI (Documentation de l'API) : http://localhost:8080/swagger-ui.html
+- OpenAPI JSON : http://localhost:8080/v3/api-docs
+- Console H2 : http://localhost:8080/h2-console
+
+## 🗄️ Configuration de la base de données
+
+Par défaut, l'application utilise une base de données H2 en mémoire pour faciliter le développement (`application.properties`).
+
+Pour utiliser MySQL en environnement de production ou de test avancé, vous pouvez surcharger les variables d'environnement suivantes :
+
+```properties
+SPRING_DATASOURCE_URL=jdbc:mysql://localhost:3306/gestion_retours
+SPRING_DATASOURCE_USERNAME=root
+SPRING_DATASOURCE_PASSWORD=votre_mot_de_passe
+SPRING_DATASOURCE_DRIVER_CLASS_NAME=com.mysql.cj.jdbc.Driver
+```
+
+(Ou définissez-les directement dans les variables d'environnement de votre système/conteneur).
