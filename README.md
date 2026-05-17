@@ -109,4 +109,4 @@ SPRING_DATASOURCE_PASSWORD=votre_mot_de_passe
 SPRING_DATASOURCE_DRIVER_CLASS_NAME=com.mysql.cj.jdbc.Driver
 ```
 
-(Ou définissez-les directement dans les variables d'environnement de votre système/conteneur).
+
