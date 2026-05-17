@@ -1,0 +1,4 @@
+SPRING_DATASOURCE_URL: "jdbc:mysql:///retoursdb?cloudSqlInstance=systemgestiondesretours:europe-west1:retours-mysql&socketFactory=com.google.cloud.sql.mysql.SocketFactory&cloudSqlRefreshStrategy=lazy&useSSL=false"
+SPRING_DATASOURCE_USERNAME: "retours_user"
+SPRING_DATASOURCE_DRIVER_CLASS_NAME: "com.mysql.cj.jdbc.Driver"
+SPRING_JWT_EXPIRATION_MS: "3600000"

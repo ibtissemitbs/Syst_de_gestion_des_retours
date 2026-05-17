@@ -1,0 +1,369 @@
+@if (!user()) {
+  <main class="auth-page">
+    <section class="auth-hero">
+      <div class="auth-copy">
+        <span class="auth-kicker">Plateforme qualite</span>
+        <h1>RetoursPro</h1>
+        <p>Centralisez les retours clients, les constats qualite et l'historique des operations dans une interface simple et controlee par role.</p>
+        <div class="auth-proof">
+          <span>Admin</span>
+          <span>Agent</span>
+          <span>Qualite</span>
+        </div>
+      </div>
+
+      <div class="auth-highlights">
+        <article>
+          <strong>Retours</strong>
+          <span>Enregistrement et suivi</span>
+        </article>
+        <article>
+          <strong>Qualite</strong>
+          <span>Non-conformites et gravite</span>
+        </article>
+        <article>
+          <strong>Historique</strong>
+          <span>Operations tracees</span>
+        </article>
+      </div>
+    </section>
+
+    <section class="auth-panel">
+      <div class="auth-card-header">
+        <span class="brand-mark">R</span>
+        <div>
+          <h1>Gestion des retours</h1>
+          <p>Connectez-vous pour acceder a votre espace.</p>
+        </div>
+      </div>
+
+      @if (error()) {
+        <p class="message error">{{ error() }}</p>
+      }
+      @if (notice()) {
+        <p class="message success">{{ notice() }}</p>
+      }
+
+      <form class="form-stack" (ngSubmit)="login()">
+        <label>
+          Email
+          <input name="loginEmail" type="email" autocomplete="email" placeholder="email@retours.local" required [(ngModel)]="loginForm.email" />
+        </label>
+        <label>
+          Mot de passe
+          <input name="loginPassword" type="password" autocomplete="current-password" placeholder="Votre mot de passe" required [(ngModel)]="loginForm.password" />
+        </label>
+        <button class="primary-action" type="submit" [disabled]="loading()">{{ loading() ? 'Connexion...' : 'Se connecter' }}</button>
+      </form>
+    </section>
+  </main>
+} @else {
+  <main class="app-shell">
+    <aside class="sidebar">
+      <div class="brand-block compact">
+        <span class="brand-mark">R</span>
+        <div>
+          <h1>RetoursPro</h1>
+          <p>Gestion qualite</p>
+        </div>
+      </div>
+
+      <p class="nav-label">Navigation</p>
+      <nav class="tabs" aria-label="Sections">
+        <button type="button" [class.active]="activeTab() === 'retours'" (click)="setTab('retours')"><span aria-hidden="true"></span>Retours</button>
+        @if (canViewNonConformites()) {
+          <button type="button" [class.active]="activeTab() === 'non-conformites'" (click)="setTab('non-conformites')"><span aria-hidden="true"></span>Non-conformites</button>
+        }
+        <button type="button" [class.active]="activeTab() === 'historique'" (click)="setTab('historique')"><span aria-hidden="true"></span>Historique</button>
+        @if (canManageUsers()) {
+          <button type="button" [class.active]="activeTab() === 'utilisateurs'" (click)="setTab('utilisateurs')"><span aria-hidden="true"></span>Utilisateurs</button>
+        }
+      </nav>
+
+      <div class="profile-card">
+        <span class="profile-avatar">{{ user()?.nom?.charAt(0) }}</span>
+        <div>
+          <strong>{{ user()?.nom }}</strong>
+          <small>{{ user()?.role }}</small>
+        </div>
+      </div>
+
+      <button class="ghost-action" type="button" (click)="logout()">Deconnexion</button>
+    </aside>
+
+    <section class="main-area">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Plateforme qualite</p>
+          <h1>Tableau de bord retours</h1>
+          <p class="topbar-subtitle">Suivi des retours, controles qualite et operations utilisateurs.</p>
+        </div>
+        <div class="topbar-actions">
+          <button class="ghost-action desktop-logout" type="button" (click)="logout()">Deconnexion</button>
+        </div>
+      </header>
+
+      @if (error()) {
+        <p class="message error">{{ error() }}</p>
+      }
+      @if (notice()) {
+        <p class="message success">{{ notice() }}</p>
+      }
+
+      <section class="metrics-grid" aria-label="Indicateurs">
+        <article class="metric-total">
+          <span class="metric-label">Total retours</span>
+          <strong>{{ totalRetours() }}</strong>
+          <small>Demandes suivies</small>
+        </article>
+        <article class="metric-progress">
+          <span class="metric-label">En cours</span>
+          <strong>{{ retoursEnCours() }}</strong>
+          <small>Traitements actifs</small>
+        </article>
+        <article class="metric-valid">
+          <span class="metric-label">Valides</span>
+          <strong>{{ retoursValides() }}</strong>
+          <small>Retours clotures</small>
+        </article>
+        @if (canViewNonConformites()) {
+          <article class="metric-critical">
+            <span class="metric-label">Critiques</span>
+            <strong>{{ nonConformitesCritiques() }}</strong>
+            <small>Priorite qualite</small>
+          </article>
+        }
+      </section>
+
+      @if (activeTab() === 'retours') {
+        <section class="workspace two-columns">
+        @if (canCreateRetours()) {
+          <form class="panel form-stack" (ngSubmit)="createRetour()">
+            <div class="section-title">
+              <h2>Nouveau retour</h2>
+              <p>Declarer un retour client.</p>
+            </div>
+            <label>
+              Produit
+              <input name="retourProduit" type="text" placeholder="Ex. PC, imprimante, carte reseau" required [(ngModel)]="retourForm.produit" />
+            </label>
+            <label>
+              Client
+              <input name="retourClient" type="text" placeholder="Ex. CL-1200" required [(ngModel)]="retourForm.client" />
+            </label>
+            <label>
+              Raison
+              <textarea name="retourRaison" rows="4" placeholder="Probleme declare par le client" required [(ngModel)]="retourForm.raison"></textarea>
+            </label>
+            <button class="primary-action" type="submit">Enregistrer</button>
+          </form>
+        }
+
+        <section class="panel list-panel">
+          <div class="panel-heading">
+            <div class="section-title">
+              <h2>Retours produits</h2>
+              <p>Liste des demandes et etats de traitement.</p>
+            </div>
+            <select name="filtreEtat" [ngModel]="filtreEtat()" (ngModelChange)="setFiltreEtat($event)" aria-label="Filtrer par etat">
+              <option value="">Tous</option>
+              @for (etat of etats; track etat) {
+                <option [value]="etat">{{ labelEtat(etat) }}</option>
+              }
+            </select>
+          </div>
+
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Produit</th>
+                  <th>Client</th>
+                  <th>Etat</th>
+                  <th>Date</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (retour of retours(); track retour.id) {
+                  <tr>
+                    <td>
+                      <strong>{{ retour.produit }}</strong>
+                      <span>{{ retour.raison }}</span>
+                    </td>
+                    <td>{{ retour.client }}</td>
+                    <td><span class="status" [ngClass]="retour.etatTraitement.toLowerCase()">{{ labelEtat(retour.etatTraitement) }}</span></td>
+                    <td>{{ formatDate(retour.date) }}</td>
+                    <td>
+                      <div class="row-actions">
+                        @if (canManageQuality()) {
+                          <select
+                            [name]="'etat-' + retour.id"
+                            [ngModel]="retour.etatTraitement"
+                            (ngModelChange)="updateEtat(retour, $event)"
+                            aria-label="Modifier l'etat"
+                          >
+                            @for (etat of etats; track etat) {
+                              <option [value]="etat">{{ labelEtat(etat) }}</option>
+                            }
+                          </select>
+                        } @else {
+                          <span class="muted">Lecture</span>
+                        }
+                      </div>
+                    </td>
+                  </tr>
+                } @empty {
+                  <tr>
+                    <td colspan="5" class="empty">Aucun retour</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </section>
+    }
+
+    @if (activeTab() === 'non-conformites' && canViewNonConformites()) {
+      <section class="workspace two-columns">
+        @if (canManageQuality()) {
+          <form class="panel form-stack" (ngSubmit)="createNonConformite()">
+            <div class="section-title">
+              <h2>Nouvelle non-conformite</h2>
+              <p>Constat qualite lie a un retour.</p>
+            </div>
+            <label>
+              Produit
+              <input name="ncProduit" type="text" placeholder="Produit controle" required [(ngModel)]="nonConformiteForm.produit" />
+            </label>
+            <label>
+              Gravite
+              <select name="ncGravite" required [(ngModel)]="nonConformiteForm.gravite">
+                @for (gravite of gravites; track gravite) {
+                  <option [value]="gravite">{{ gravite }}</option>
+                }
+              </select>
+            </label>
+            <label>
+              Retour associe
+              <select name="ncRetour" [(ngModel)]="nonConformiteForm.retourId">
+                <option [ngValue]="undefined">Aucun</option>
+                @for (retour of retours(); track retour.id) {
+                  <option [ngValue]="retour.id">#{{ retour.id }} - {{ retour.produit }}</option>
+                }
+              </select>
+            </label>
+            <label>
+              Description
+              <textarea name="ncDescription" rows="4" placeholder="Constat ou traitement qualite" required [(ngModel)]="nonConformiteForm.description"></textarea>
+            </label>
+            <button class="primary-action" type="submit">Enregistrer</button>
+          </form>
+        }
+
+        <section class="panel cards-list">
+          <div class="section-title">
+            <h2>Non-conformites</h2>
+            <p>Defauts declares et niveau de gravite.</p>
+          </div>
+          @for (item of nonConformites(); track item.id) {
+            <article class="item-card">
+              <div>
+                <span class="severity" [ngClass]="item.gravite.toLowerCase()">{{ item.gravite }}</span>
+                <h3>{{ item.produit }}</h3>
+                <p>{{ item.description }}</p>
+                <small>{{ formatDate(item.date) }} @if (item.retourProduitId) { - Retour #{{ item.retourProduitId }} }</small>
+              </div>
+              @if (canManageQuality()) {
+                <button class="danger-action" type="button" (click)="deleteNonConformite(item.id)">Supprimer</button>
+              }
+            </article>
+          } @empty {
+            <p class="empty">Aucune non-conformite</p>
+          }
+        </section>
+      </section>
+    }
+
+    @if (activeTab() === 'historique') {
+      <section class="workspace">
+        <section class="panel timeline">
+          <div class="section-title">
+            <h2>Historique</h2>
+            <p>Operations recentes effectuees sur la plateforme.</p>
+          </div>
+          @for (item of historiques(); track item.id) {
+            <article>
+              <span></span>
+              <div>
+                <strong>{{ item.action }}</strong>
+                <p>{{ historiqueRetourLabel(item) }}</p>
+                @if (item.retourRaison) {
+                  <p class="timeline-reason">{{ item.retourRaison }}</p>
+                }
+                <small>{{ formatDate(item.date) }} - {{ historiqueUserLabel(item) }}</small>
+              </div>
+            </article>
+          } @empty {
+            <p class="empty">Aucun historique</p>
+          }
+        </section>
+      </section>
+    }
+
+    @if (activeTab() === 'utilisateurs' && canManageUsers()) {
+      <section class="workspace two-columns">
+        <form class="panel form-stack" (ngSubmit)="createUtilisateur()">
+          <div class="section-title">
+            <h2>Nouvel utilisateur</h2>
+            <p>Creer un acces pour un agent ou qualite.</p>
+          </div>
+          <label>
+            Nom
+            <input name="userNom" type="text" placeholder="Nom complet" required [(ngModel)]="utilisateurForm.nom" />
+          </label>
+          <label>
+            Email
+            <input name="userEmail" type="email" placeholder="email@retours.local" required [(ngModel)]="utilisateurForm.email" />
+          </label>
+          <label>
+            Mot de passe
+            <input name="userPassword" type="password" placeholder="Mot de passe provisoire" required [(ngModel)]="utilisateurForm.password" />
+          </label>
+          <label>
+            Role
+            <select name="userRole" required [(ngModel)]="utilisateurForm.role">
+              @for (role of roles; track role) {
+                <option [value]="role">{{ role }}</option>
+              }
+            </select>
+          </label>
+          <button class="primary-action" type="submit">Creer</button>
+        </form>
+
+        <section class="panel cards-list">
+          <div class="section-title">
+            <h2>Utilisateurs</h2>
+            <p>Comptes autorises sur la plateforme.</p>
+          </div>
+          @for (utilisateur of utilisateurs(); track utilisateur.id) {
+            <article class="item-card">
+              <div>
+                <h3>{{ utilisateur.nom }}</h3>
+                <p>{{ utilisateur.email }}</p>
+                <small><span class="role-mini">{{ utilisateur.role }}</span> @if (utilisateur.enabled === false) { - Desactive }</small>
+              </div>
+              @if (utilisateur.id !== user()?.id) {
+                <button class="danger-action" type="button" (click)="deleteUtilisateur(utilisateur.id)">Supprimer</button>
+              }
+            </article>
+          } @empty {
+            <p class="empty">Aucun utilisateur</p>
+          }
+        </section>
+      </section>
+    }
+    </section>
+  </main>
+}
