@@ -1,0 +1,3 @@
+CREATE DATABASE IF NOT EXISTS retoursdb;
+GRANT ALL PRIVILEGES ON retoursdb.* TO 'retours_user'@'%';
+FLUSH PRIVILEGES;

@@ -29,6 +29,38 @@ function New-Base64Secret {
   [Convert]::ToBase64String($bytes)
 }
 
+function Test-GcloudCommand {
+  param([scriptblock]$Command)
+
+  $previousPreference = $ErrorActionPreference
+  $ErrorActionPreference = "Continue"
+  & $Command *> $null
+  $exitCode = $LASTEXITCODE
+  $ErrorActionPreference = $previousPreference
+
+  return $exitCode -eq 0
+}
+
+function Set-SecretValue {
+  param(
+    [string]$Name,
+    [string]$Value
+  )
+
+  $secretFile = Join-Path $env:TEMP "$Name.txt"
+  Set-Content -Path $secretFile -Value $Value -NoNewline -Encoding utf8
+
+  $secretExists = Test-GcloudCommand { gcloud.cmd secrets describe $Name }
+  if (-not $secretExists) {
+    gcloud.cmd secrets create $Name --data-file $secretFile
+  }
+  else {
+    gcloud.cmd secrets versions add $Name --data-file $secretFile
+  }
+
+  Remove-Item $secretFile -ErrorAction SilentlyContinue
+}
+
 $BackendService = "retours-backend"
 $FrontendService = "retours-frontend"
 $BackendImage = "$Region-docker.pkg.dev/$ProjectId/$ArtifactRepo/$BackendService`:latest"
@@ -47,7 +79,7 @@ gcloud.cmd services enable `
   sqladmin.googleapis.com `
   secretmanager.googleapis.com
 
-$repoExists = gcloud.cmd artifacts repositories describe $ArtifactRepo --location $Region --format "value(name)" 2>$null
+$repoExists = Test-GcloudCommand { gcloud.cmd artifacts repositories describe $ArtifactRepo --location $Region }
 if (-not $repoExists) {
   gcloud.cmd artifacts repositories create $ArtifactRepo `
     --repository-format docker `
@@ -55,7 +87,7 @@ if (-not $repoExists) {
     --description "Images Docker de la plateforme de gestion des retours"
 }
 
-$sqlExists = gcloud.cmd sql instances describe $CloudSqlInstance --format "value(name)" 2>$null
+$sqlExists = Test-GcloudCommand { gcloud.cmd sql instances describe $CloudSqlInstance }
 if (-not $sqlExists) {
   if (-not $RootPassword) {
     $RootPassword = New-RandomPassword
@@ -69,7 +101,7 @@ if (-not $sqlExists) {
     --root-password $RootPassword
 }
 
-$dbExists = gcloud.cmd sql databases describe $DatabaseName --instance $CloudSqlInstance --format "value(name)" 2>$null
+$dbExists = Test-GcloudCommand { gcloud.cmd sql databases describe $DatabaseName --instance $CloudSqlInstance }
 if (-not $dbExists) {
   gcloud.cmd sql databases create $DatabaseName --instance $CloudSqlInstance
 }
@@ -86,19 +118,13 @@ else {
   gcloud.cmd sql users set-password $DatabaseUser --instance $CloudSqlInstance --password $DbPassword
 }
 
-$DbPassword | gcloud.cmd secrets create retours-db-password --data-file=- 2>$null
-if ($LASTEXITCODE -ne 0) {
-  $DbPassword | gcloud.cmd secrets versions add retours-db-password --data-file=-
-}
+Set-SecretValue -Name "retours-db-password" -Value $DbPassword
 
 if (-not $JwtSecret) {
   $JwtSecret = New-Base64Secret
 }
 
-$JwtSecret | gcloud.cmd secrets create retours-jwt-secret --data-file=- 2>$null
-if ($LASTEXITCODE -ne 0) {
-  $JwtSecret | gcloud.cmd secrets versions add retours-jwt-secret --data-file=-
-}
+Set-SecretValue -Name "retours-jwt-secret" -Value $JwtSecret
 
 $ProjectNumber = gcloud.cmd projects describe $ProjectId --format "value(projectNumber)"
 $CloudRunServiceAccount = "$ProjectNumber-compute@developer.gserviceaccount.com"
@@ -117,7 +143,33 @@ gcloud.cmd secrets add-iam-policy-binding retours-jwt-secret `
 
 gcloud.cmd builds submit . --tag $BackendImage
 
-$DatasourceUrl = "jdbc:mysql:///$DatabaseName`?cloudSqlInstance=$CloudSqlConnectionName&socketFactory=com.google.cloud.sql.mysql.SocketFactory&useSSL=false"
+$CloudSqlServiceAccount = gcloud.cmd sql instances describe $CloudSqlInstance --format "value(serviceAccountEmailAddress)"
+$ImportBucket = "$ProjectId`_cloudbuild"
+
+gcloud.cmd storage buckets add-iam-policy-binding "gs://$ImportBucket" `
+  --member "serviceAccount:$CloudSqlServiceAccount" `
+  --role "roles/storage.objectViewer"
+
+$GrantSqlFile = Join-Path $env:TEMP "retours-grant-user.sql"
+@(
+  "CREATE DATABASE IF NOT EXISTS $DatabaseName;"
+  "GRANT ALL PRIVILEGES ON $DatabaseName.* TO '$DatabaseUser'@'%';"
+  "FLUSH PRIVILEGES;"
+) | Set-Content -Path $GrantSqlFile -Encoding utf8
+
+gcloud.cmd storage cp $GrantSqlFile "gs://$ImportBucket/retours-grant-user.sql"
+gcloud.cmd sql import sql $CloudSqlInstance "gs://$ImportBucket/retours-grant-user.sql" --quiet
+Remove-Item $GrantSqlFile -ErrorAction SilentlyContinue
+
+$DatasourceUrl = 'jdbc:mysql:///' + $DatabaseName + '?cloudSqlInstance=' + $CloudSqlConnectionName + '&socketFactory=com.google.cloud.sql.mysql.SocketFactory&cloudSqlRefreshStrategy=lazy&useSSL=false'
+$BackendEnvFile = Join-Path $env:TEMP 'retours-backend-env.yaml'
+
+@(
+  'SPRING_DATASOURCE_URL: "' + $DatasourceUrl + '"'
+  'SPRING_DATASOURCE_USERNAME: "' + $DatabaseUser + '"'
+  'SPRING_DATASOURCE_DRIVER_CLASS_NAME: "com.mysql.cj.jdbc.Driver"'
+  'SPRING_JWT_EXPIRATION_MS: "3600000"'
+) | Set-Content -Path $BackendEnvFile -Encoding utf8
 
 gcloud.cmd run deploy $BackendService `
   --image $BackendImage `
@@ -125,11 +177,16 @@ gcloud.cmd run deploy $BackendService `
   --platform managed `
   --allow-unauthenticated `
   --port 8080 `
+  --execution-environment gen2 `
+  --timeout 300 `
   --add-cloudsql-instances $CloudSqlConnectionName `
-  --set-env-vars "SPRING_DATASOURCE_URL=$DatasourceUrl,SPRING_DATASOURCE_USERNAME=$DatabaseUser,SPRING_DATASOURCE_DRIVER_CLASS_NAME=com.mysql.cj.jdbc.Driver,SPRING_JWT_EXPIRATION_MS=3600000" `
+  --env-vars-file $BackendEnvFile `
   --set-secrets "SPRING_DATASOURCE_PASSWORD=retours-db-password:latest,SPRING_JWT_SECRET=retours-jwt-secret:latest"
 
+Remove-Item $BackendEnvFile -ErrorAction SilentlyContinue
+
 $BackendUrl = gcloud.cmd run services describe $BackendService --region $Region --format "value(status.url)"
+$BackendHost = $BackendUrl -replace "^https://", ""
 
 gcloud.cmd builds submit frontend --tag $FrontendImage
 
@@ -139,7 +196,7 @@ gcloud.cmd run deploy $FrontendService `
   --platform managed `
   --allow-unauthenticated `
   --port 80 `
-  --set-env-vars "BACKEND_URL=$BackendUrl"
+  --set-env-vars "BACKEND_URL=$BackendUrl,BACKEND_HOST=$BackendHost"
 
 $FrontendUrl = gcloud.cmd run services describe $FrontendService --region $Region --format "value(status.url)"
 
