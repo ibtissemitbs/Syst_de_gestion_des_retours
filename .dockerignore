@@ -1,4 +1,6 @@
 target/
+frontend/
+gcp/
 .git/
 .gitignore
 .idea/
